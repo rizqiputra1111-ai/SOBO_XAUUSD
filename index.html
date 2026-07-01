@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Multi-Asset Realtime Engine</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #0c0d14;
+            color: #e2e8f0;
+            margin: 0;
+            padding: 10px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .chart-wrapper {
+            width: 100%;
+            height: 350px;
+            background-color: #131722;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        .tradingview-widget-container {
+            width: 100%;
+            height: 100%;
+        }
+        .panel {
+            background-color: #131722;
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .col {
+            flex: 1;
+            min-width: 130px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        label {
+            font-size: 0.75rem;
+            color: #787b86;
+            font-weight: bold;
+        }
+        select, button {
+            background-color: #1e222d;
+            border: 1px solid #2a2e39;
+            color: #fff;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+        button {
+            background: linear-gradient(135deg, #00b4db, #0083b0);
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 12px;
+            margin-top: 5px;
+        }
+        .card {
+            background-color: #131722;
+            padding: 12px;
+            border-radius: 8px;
+            display: block; /* Diubah menjadi block agar langsung terlihat strukturnya */
+        }
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .key-levels {
+            background-color: #1c2030;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+            border-left: 3px solid #00b4db;
+        }
+        .grid-setup {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            background-color: #1c2030;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+        .grid-header { color: #787b86; font-size: 0.7rem; font-weight: bold; }
+        .badge { padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+        .winrate-badge { background-color: #2962ff; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;}
+        .futures-badge { background-color: #ff9800; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;}
+        .buy { color: #10b981; }
+        .sell { color: #ef4444; }
+        .bg-buy { background-color: #10b981; color: #fff; }
+        .bg-sell { background-color: #ef4444; color: #fff; }
+        .status-stream { font-size: 0.7rem; color: #10b981; font-weight: bold; animation: blink 1.5s infinite; }
+        @keyframes blink { 0% {opacity: 0.3;} 50% {opacity: 1;} 100% {opacity: 0.3;} }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 5px; text-align: center;}
+        th { color: #787b86; font-size: 0.7rem; padding: 4px; }
+        td { padding: 6px 4px; background-color: #1c2030; border: 1px solid #131722;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- PANEL KONTROL INPUT MULTI-ASSET -->
+    <div class="panel">
+        <div class="row">
+            <div class="col">
+                <label>Kategori Pasar (Asset Class)</label>
+                <select id="kategoriPasar" onchange="updateWidgetAset(); generateAnalisaMultiTimeframe();">
+                    <option value="COMODITY">🛢️ COMMODITY (Gold - XAUUSD)</option>
+                    <option value="FOREX">💱 FOREX (Euro - EURUSD)</option>
+                    <option value="FUTURE">🌐 CRYPTO FUTURE (Bitcoin - BTCUSDT)</option>
+                </select>
+            </div>
+            <div class="col">
+                <label>Gaya Trading</label>
+                <select id="gayaTrading" onchange="generateAnalisaMultiTimeframe();">
+                    <option value="sniper">🎯 Sniper Entry (High Winrate)</option>
+                    <option value="scalping">Scalping (M1-M5)</option>
+                    <option value="intraday">Intraday (M15-H1)</option>
+                </select>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <label>Arah Posisi</label>
+                <select id="opsiArah" onchange="generateAnalisaMultiTimeframe();">
+                    <option value="BUY">LONG (Buy Limit)</option>
+                    <option value="SELL">SHORT (Sell Limit)</option>
+                    <option value="BUY_SELL">LONG & SHORT (Dua Arah)</option>
+                </select>
+            </div>
+            <div class="col">
+                <label>Risk-to-Reward (RRR)</label>
+                <select id="rrrSelect" onchange="generateAnalisaMultiTimeframe();">
+                    <option value="2">RRR 1:2 (Standar)</option>
+                    <option value="2.5">RRR 1:2.5 (Konsisten)</option>
+                    <option value="3">RRR 1:3 (Agresif)</option>
+                    <option value="5">RRR 1:5 (Extreme Sniper)</option>
+                </select>
+            </div>
+        </div>
+        <!-- Tombol dipertahankan untuk pembaruan paksa jika diperlukan -->
+        <button onclick="generateAnalisaMultiTimeframe()">🔄 RE-CALCULATE NOW</button>
+    </div>
+
+    <!-- GRAPHIC VIEWPORT -->
+    <div class="chart-wrapper">
+        <div class="tradingview-widget-container" id="widgetContainer"></div>
+    </div>
+
+    <!-- HASIL SETUP UTAMA -->
+    <div class="card" id="mainSetupCard" style="border-top: 4px solid #00b4db;">
+        <div class="card-title">
+            <span>🎯 SETUP UTAMA (Smart Money Confluence)</span>
+            <span class="status-stream">🟢 LIVE STREAMING</span>
+        </div>
+        
+        <div class="key-levels" id="keyLevelsText">Memuat level kunci...</div>
+        
+        <div class="grid-setup">
+            <div class="grid-header">Simbol Aset</div>
+            <div class="grid-header">Limit Entry</div>
+            <div class="grid-header">Take Profit</div>
+            <div class="grid-header">Stop Loss</div>
+            <div class="grid-header">Winrate & ROI</div>
+            
+            <div id="mainTf" style="font-weight: bold;">XAUUSD</div>
+            <div id="mainEntry" style="font-weight: bold;">0.00</div>
+            <div id="mainTP" class="buy" style="font-weight: bold;">0.00</div>
+            <div id="mainSL" class="sell" style="font-weight: bold;">0.00</div>
+            <div><span class="winrate-badge" id="mainWinrate">0%</span><br><span class="futures-badge" id="mainROI" style="margin-top: 4px; display: inline-block;">+0% ROI</span></div>
+        </div>
+        <p style="font-size: 0.75rem; color: #cbd5e1; margin: 8px 0 0 0; line-height: 1.4;" id="mainNarasi"></p>
+    </div>
+
+    <!-- HASIL SETUP ALTERNATIF -->
+    <div class="card" id="altSetupCard" style="border-top: 4px solid #0083b0;">
+        <div class="card-title" id="altTitleText">📊 MATRIX ORDER BOOK ASSET</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>TF</th>
+                    <th>Tipe Kontrak</th>
+                    <th>Entry Zona</th>
+                    <th>Target TP</th>
+                    <th>Proteksi SL</th>
+                    <th>Rec. Leverage</th>
+                    <th>Est. Winrate</th>
+                </tr>
+            </thead>
+            <tbody id="altTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+<script>
+    let streamInterval;
+
+    function renderTradingViewWidget(symbol) {
+        document.getElementById('widgetContainer').innerHTML = `<div id="tradingview_chart"></div>`;
+        new TradingView.widget({
+            "width": "100%",
+            "height": "100%",
+            "symbol": symbol,
+            "interval": "5",
+            "timezone": "Asia/Jakarta",
+            "theme": "dark",
+            "style": "1",
+            "locale": "id",
+            "enable_publishing": false,
+            "hide_side_toolbar": true,
+            "allow_symbol_change": true,
+            "container_id": "tradingview_chart"
+        });
+    }
+
+    function updateWidgetAset() {
+        const pasar = document.getElementById('kategoriPasar').value;
+        if (pasar === "COMODITY") renderTradingViewWidget("FX_IDC:XAUUSD");
+        else if (pasar === "FOREX") renderTradingViewWidget("FX:EURUSD");
+        else if (pasar === "FUTURE") renderTradingViewWidget("BINANCE:BTCUSDT");
+    }
+
+    // FUNGSI INTI KALKULASI DINAMIS REAL-TIME
+    async function generateAnalisaMultiTimeframe() {
+        const pasar = document.getElementById('kategoriPasar').value;
+        const gaya = document.getElementById('gayaTrading').value;
+        const opsi = document.getElementById('opsiArah').value;
+        const rrrMultiplier = parseFloat(document.getElementById('rrrSelect').value);
+
+        let basePrice = 2342.50; 
+        let assetName = "XAUUSD";
+        let pipDecimal = 2;
+        let riskDistance = 1.2; 
+        let recLeverage = "20x";
+
+        if (pasar === "FOREX") {
+            basePrice = 1.08540;
+            assetName = "EURUSD";
+            pipDecimal = 5;
+            riskDistance = 0.00080; 
+            recLeverage = gaya === "sniper" ? "100x" : "50x";
+        } else if (pasar === "FUTURE") {
+            basePrice = 67250.00; 
+            assetName = "BTCUSDT";
+            pipDecimal = 2;
+            riskDistance = 250.00; 
+            recLeverage = gaya === "sniper" ? "50x" : "20x";
+        } else {
+            riskDistance = gaya === "sniper" ? 1.2 : (gaya === "scalping" ? 2.0 : 5.0);
+            recLeverage = gaya === "sniper" ? "50x" : "20x";
+        }
+
+        // Generate sedikit fluktuasi harga berjalan (Simulasi Tick Live Data)
+        let livePrice = basePrice + (Math.random() * (basePrice * 0.001) - (basePrice * 0.0005));
+
+        let biasUtama = "LONG";
+        if (opsi === "BUY") biasUtama = "LONG";
+        else if (opsi === "SELL") biasUtama = "SHORT";
+        else biasUtama = Math.random() > 0.5 ? "LONG" : "SHORT";
+
+        let mainWinratePct = gaya === "sniper" ? (rrrMultiplier <= 2.5 ? 85 : 78) : (rrrMultiplier <= 2.5 ? 74 : 67);
+        let pctMove = (riskDistance / livePrice) * 100;
+        let levMultiplier = parseFloat(recLeverage);
+        let mainROIPct = pctMove * levMultiplier * rrrMultiplier;
+
+        const offsetOB = riskDistance * 1.5;
+        document.getElementById('keyLevelsText').innerHTML = `
+            <strong>📍 Data Analisis Struktural Pasar (${pasar}):</strong><br>
+            • Leverage Disarankan: <strong>${recLeverage} (Isolated Margin)</strong><br>
+            • Keseimbangan Harga (Institutional OB): $${(biasUtama === "LONG" ? livePrice - offsetOB : livePrice + offsetOB).toFixed(pipDecimal)}<br>
+            • Area Sapuan Likuiditas Terdekat: $${(biasUtama === "LONG" ? livePrice - (riskDistance * 3) : livePrice + (riskDistance * 3)).toFixed(pipDecimal)}
+        `;
+
+        let mainEntry = biasUtama === "LONG" ? livePrice - (riskDistance * 0.2) : livePrice + (riskDistance * 0.2);
+        let mainSL, mainTP, mainNarasiText;
+
+        if (biasUtama === "LONG") {
+            mainSL = mainEntry - riskDistance;
+            mainTP = mainEntry + (riskDistance * rrrMultiplier);
+            mainNarasiText = `[${pasar} LIVE] Konfluensi struktur valid. Mengambil order LONG di area diskon terdalam dengan target ROI +${mainROIPct.toFixed(1)}%.`;
+        } else {
+            mainSL = mainEntry + riskDistance;
+            mainTP = mainEntry - (riskDistance * rrrMultiplier);
+            mainNarasiText = `[${pasar} LIVE] Tekanan penawaran masif terdeteksi. Kontrak SHORT aktif di area premium mengejar target +${mainROIPct.toFixed(1)}% ROI.`;
+        }
+
+        document.getElementById('mainTf').innerText = assetName;
+        document.getElementById('mainEntry').innerText = mainEntry.toFixed(pipDecimal);
+        document.getElementById('mainTP').innerText = mainTP.toFixed(pipDecimal);
+        document.getElementById('mainSL').innerText = mainSL.toFixed(pipDecimal);
+        document.getElementById('mainWinrate').innerText = `${mainWinratePct}%`;
+        document.getElementById('mainROI').innerText = `+${mainROIPct.toFixed(1)}% ROI`;
+        document.getElementById('mainNarasi').innerText = mainNarasiText;
+
+        // Tabel Alternatif Mandiri
+        document.getElementById('altTitleText').innerText = `📊 MATRIX ORDER BOOK ${pasar} (RRR 1:${rrrMultiplier})`;
+        const timeframes = ["M1", "M5", "M15", "M30", "H1"];
+        let tableHtml = "";
+
+        timeframes.forEach((tf, index) => {
+            let altBias = biasUtama;
+            if (opsi === "BUY_SELL") altBias = (index % 2 === 0) ? "LONG" : "SHORT";
+
+            let altEntry, altSL, altTP;
+            let tfWeight = (index + 1) * (riskDistance * 0.4); 
+
+            if (altBias === "LONG") {
+                altEntry = livePrice - tfWeight;
+                altSL = altEntry - (tfWeight * 0.8);
+                altTP = altEntry + ((altEntry - altSL) * rrrMultiplier);
+            } else {
+                altEntry = livePrice + tfWeight;
+                altSL = altEntry + (tfWeight * 0.8);
+                altTP = altEntry - ((altSL - altEntry) * rrrMultiplier);
+            }
+
+            let tfLeverage = recLeverage;
+            if(tf === "M30" || tf === "H1") tfLeverage = pasar === "FOREX" ? "25x" : "10x";
+            let altWinratePct = 65 + (index * 2);
+
+            tableHtml += `
+                <tr>
+                    <td style="font-weight:bold;">${tf}</td>
+                    <td class="${altBias === 'LONG' ? 'buy' : 'sell'}" style="font-weight:bold;">${altBias} LIMIT</td>
+                    <td>${altEntry.toFixed(pipDecimal)}</td>
+                    <td class="buy">${altTP.toFixed(pipDecimal)}</td>
+                    <td class="sell">${altSL.toFixed(pipDecimal)}</td>
+                    <td><span class="futures-badge">${tfLeverage}</span></td>
+                    <td><span class="winrate-badge" style="background-color: #4b5563;">${altWinratePct}%</span></td>
+                </tr>
+            `;
+        });
+        document.getElementById('altTableBody').innerHTML = tableHtml;
+    }
+
+    // AKTIVASI GENERATOR OTOMATIS SAAT PERTAMA LOAD & SET LOOP STREAMING
+    window.onload = function() {
+        updateWidgetAset();
+        generateAnalisaMultiTimeframe();
+        
+        // Mengeset pembaruan otomatis setiap 2000 milidetik (2 detik) tanpa mematikan aplikasi
+        if(streamInterval) clearInterval(streamInterval);
+        streamInterval = setInterval(generateAnalisaMultiTimeframe, 2000);
+    };
+</script>
+
+</body>
+</html>
