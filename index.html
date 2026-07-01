@@ -3,57 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Institutional Gold Analytics Engine v6</title>
+    <title>AI Institutional Gold Analytics Engine v6.1</title>
     <style>
         body {
-            font-family: 'Courier New', Courier, monospace;
-            background-color: #08090c;
-            color: #d1d5db;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background-color: #0c0d14;
+            color: #cbd5e1;
             margin: 0;
-            padding: 10px;
-            line-height: 1.4;
+            padding: 12px;
         }
         .container {
-            max-width: 650px;
+            max-width: 600px;
             margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
         }
         .panel {
-            background-color: #11131a;
+            background-color: #131722;
             padding: 14px;
-            border: 1px solid #222531;
-            border-radius: 4px;
+            border-radius: 8px;
+            border: 1px solid #2a2e39;
         }
         .row {
             display: flex;
             gap: 10px;
-            flex-wrap: wrap;
             margin-bottom: 10px;
         }
         .col {
             flex: 1;
-            min-width: 140px;
             display: flex;
             flex-direction: column;
             gap: 4px;
         }
         label {
             font-size: 0.75rem;
-            color: #848e9c;
+            color: #787b86;
             font-weight: bold;
             text-transform: uppercase;
         }
-        select, button, input {
-            background-color: #1e2026;
-            border: 1px solid #2f3342;
+        select, input {
+            background-color: #1e222d;
+            border: 1px solid #2a2e39;
             color: #fff;
-            padding: 8px;
-            border-radius: 4px;
+            padding: 10px;
+            border-radius: 6px;
             font-size: 0.85rem;
             outline: none;
-            font-family: inherit;
         }
         button {
             background: linear-gradient(135deg, #b38f4d, #d4af37);
@@ -63,35 +59,43 @@
             cursor: pointer;
             padding: 12px;
             width: 100%;
+            border-radius: 6px;
+            font-size: 0.9rem;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
         }
         .chart-wrapper {
             width: 100%;
-            height: 320px;
-            background-color: #11131a;
-            border: 1px solid #222531;
-            border-radius: 4px;
+            height: 350px;
+            background-color: #131722;
+            border-radius: 8px;
             overflow: hidden;
+            border: 1px solid #2a2e39;
         }
-        .report-card {
-            background-color: #11131a;
-            border: 1px solid #222531;
+        .report-box {
+            background-color: #131722;
+            border: 1px solid #2a2e39;
+            border-radius: 8px;
             padding: 16px;
-            border-radius: 4px;
-            white-space: pre-wrap;
-            font-size: 0.85rem;
-            color: #e2e8f0;
         }
         .terminal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px dashed #222531;
-            padding-bottom: 6px;
-            margin-bottom: 12px;
-            font-size: 0.75rem;
+            border-bottom: 1px solid #2a2e39;
+            padding-bottom: 8px;
+            margin-bottom: 14px;
+            font-size: 0.8rem;
+            font-weight: bold;
             color: #d4af37;
+        }
+        .output-text {
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            font-size: 0.82rem;
+            color: #e2e8f0;
+            line-height: 1.5;
         }
     </style>
 </head>
@@ -102,5 +106,79 @@
         <div class="row">
             <div class="col">
                 <label>Mode Trading & Batas SL</label>
-                <select id="
- yg 
+                <select id="tradingMode">
+                    <option value="SCALPING">⚡ SCALPING (Max SL 150 Pip)</option>
+                    <option value="SCALP_INT">⚔️ SCALP + INTRADAY (Max SL 300 Pip)</option>
+                    <option value="INTRADAY">🏹 INTRADAY (Max SL 500 Pip)</option>
+                </select>
+            </div>
+            <div class="col">
+                <label>Arah Bias Sentimen</label>
+                <select id="arahBias">
+                    <option value="BULLISH">📈 HTF BULLISH (Mencari Buy)</option>
+                    <option value="BEARISH">📉 HTF BEARISH (Mencari Sell)</option>
+                    <option value="KONFLIK">⚠ CONFLICTING (Wait & See)</option>
+                </select>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <label>Harga Realtime Market ($)</label>
+                <input type="number" id="basePriceInput" value="2345.50" step="0.1">
+            </div>
+            <div class="col">
+                <label>Ukuran Modal / Saldo ($)</label>
+                <input type="number" id="accountSizeInput" value="10000" step="500">
+            </div>
+        </div>
+        <button id="btnCalculate">🔮 RUN 6-STEP SMC/ICT ENGINE</button>
+    </div>
+
+    <div class="chart-wrapper">
+        <iframe 
+            src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=FX_IDC%3AXAUUSD&interval=5&symboledit=0&saveimage=1&toolbarbg=131722&hide_side_toolbar=0&theme=dark&style=1&timezone=Asia%2FJakarta&locale=id" 
+            style="width: 100%; height: 100%; border: none; margin: 0; padding: 0;" 
+            allowfullscreen>
+        </iframe>
+    </div>
+
+    <div class="report-box">
+        <div class="terminal-header">
+            <span>🏛️ INSTITUTIONAL ORDER FLOW REPORT</span>
+            <span style="color: #10b981;">🟢 LIVE ENGINE</span>
+        </div>
+        <div class="output-text" id="terminalOutput">Menginisialisasi sistem... Klik tombol di atas untuk memuat analisis.</div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('btnCalculate').addEventListener('click', function() {
+        const mode = document.getElementById('tradingMode').value;
+        const bias = document.getElementById('arahBias').value;
+        const currentPrice = parseFloat(document.getElementById('basePriceInput').value) || 2345.50;
+        const modal = parseFloat(document.getElementById('accountSizeInput').value) || 10000;
+
+        let maxSlPips = mode === "SCALPING" ? 150 : (mode === "SCALP_INT" ? 300 : 500);
+        let slPips1 = mode === "SCALPING" ? 90 : (mode === "SCALP_INT" ? 210 : 380);
+        let slPips2 = mode === "SCALPING" ? 110 : (mode === "SCALP_INT" ? 240 : 420);
+
+        let tp1Pips1 = slPips1 * 1.5, tp2Pips1 = slPips1 * 3.0;
+        let tp1Pips2 = slPips2 * 1.5, tp2Pips2 = slPips2 * 3.0;
+
+        let z1_L, z1_H, z2_L, z2_H, sl1, tp1_1, tp2_1, sl2, tp1_2, tp2_2;
+
+        if (bias === "BULLISH" || bias === "KONFLIK") {
+            z1_H = currentPrice - 2.5; z1_L = z1_H - 0.6;
+            z2_H = currentPrice - 6.5; z2_L = z2_H - 0.7;
+            sl1 = z1_L - (slPips1 * 0.1); tp1_1 = z1_H + (tp1Pips1 * 0.1); tp2_1 = z1_H + (tp2Pips1 * 0.1);
+            sl2 = z2_L - (slPips2 * 0.1); tp1_2 = z2_H + (tp1Pips2 * 0.1); tp2_2 = z2_H + (tp2Pips2 * 0.1);
+        } else {
+            z1_L = currentPrice + 2.5; z1_H = z1_L + 0.6;
+            z2_L = currentPrice + 6.5; z2_H = z2_L + 0.7;
+            sl1 = z1_H + (slPips1 * 0.1); tp1_1 = z1_L - (tp1Pips1 * 0.1); tp2_1 = z1_L - (tp2Pips1 * 0.1);
+            sl2 = z2_H + (slPips2 * 0.1); tp1_2 = z2_L - (tp1Pips2 * 0.1); tp2_2 = z2_L - (tp2Pips2 * 0.1);
+        }
+
+        let lot1 = (modal * 0.01) / (slPips1 * 0.1);
+        let lot2 = (modal * 0.01) / (slPips2 *
+ 
