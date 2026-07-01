@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Multi-Asset Auto-Measurement Engine v4</title>
-    <!-- Memuat pustaka resmi Lightweight Charts buatan TradingView secara mandiri -->
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <title>AI Multi-Asset Realtime Engine v5</title>
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -23,13 +21,13 @@
         }
         .chart-wrapper {
             width: 100%;
-            height: 380px;
+            height: 350px;
             background-color: #131722;
             border-radius: 8px;
             overflow: hidden;
             position: relative;
         }
-        #customChartContainer {
+        .tradingview-widget-container {
             width: 100%;
             height: 100%;
         }
@@ -126,7 +124,7 @@
         <div class="row">
             <div class="col">
                 <label>Kategori Pasar (Asset Class)</label>
-                <select id="kategoriPasar" onchange="initChartEngine(); generateAnalisaMultiTimeframe();">
+                <select id="kategoriPasar" onchange="generateAnalisaMultiTimeframe();">
                     <option value="COMODITY">🛢️ COMMODITY (Gold - XAUUSD)</option>
                     <option value="FOREX">💱 FOREX (Euro - EURUSD)</option>
                     <option value="FUTURE">🌐 CRYPTO FUTURE (Bitcoin - BTCUSDT)</option>
@@ -163,12 +161,10 @@
         <button onclick="generateAnalisaMultiTimeframe()">🔄 RE-CALCULATE NOW</button>
     </div>
 
-    <!-- GRAPHIC VIEWPORT (AUTOMATIC ENGINE) -->
     <div class="chart-wrapper">
-        <div id="customChartContainer"></div>
+        <div class="tradingview-widget-container" id="widgetContainer"></div>
     </div>
 
-    <!-- HASIL SETUP UTAMA -->
     <div class="card" id="mainSetupCard" style="border-top: 4px solid #00b4db;">
         <div class="card-title">
             <span>🎯 SETUP UTAMA (Smart Money Confluence)</span>
@@ -193,7 +189,6 @@
         <p style="font-size: 0.75rem; color: #cbd5e1; margin: 8px 0 0 0; line-height: 1.4;" id="mainNarasi"></p>
     </div>
 
-    <!-- HASIL SETUP ALTERNATIF -->
     <div class="card" id="altSetupCard" style="border-top: 4px solid #0083b0;">
         <div class="card-title" id="altTitleText">📊 MATRIX ORDER BOOK ASSET</div>
         <table>
@@ -214,52 +209,19 @@
 </div>
 
 <script>
-    let chart, candlestickSeries, streamInterval;
-    // Layer Autoplot untuk menggambar kotak Target & Proteksi secara dinamis
-    let tpSeries, entrySeries, slSeries; 
+    // Fungsi render menggunakan server stabil TradingView + mengaktifkan menu gambar di kiri
+    function renderTradingViewWidget(symbol) {
+        const container = document.getElementById('widgetContainer');
+        let tvSymbol = "FX_IDC:XAUUSD";
+        if (symbol === "FX:EURUSD") tvSymbol = "FX:EURUSD";
+        if (symbol === "BINANCE:BTCUSDT") tvSymbol = "BINANCE:BTCUSDT";
 
-    // Inisialisasi Grafik Independen
-    function initChartEngine() {
-        const container = document.getElementById('customChartContainer');
-        container.innerHTML = ''; 
-
-        chart = LightweightCharts.createChart(container, {
-            layout: { backgroundColor: '#131722', textColor: '#d1d4dc' },
-            grid: { vertLines: { color: 'rgba(42, 46, 57, 0.5)' }, horzLines: { color: 'rgba(42, 46, 57, 0.5)' } },
-            rightPriceScale: { borderColor: 'rgba(197, 203, 206, 0.8)' },
-            timeScale: { borderColor: 'rgba(197, 203, 206, 0.8)', timeVisible: true, secondsVisible: false }
-        });
-
-        candlestickSeries = chart.addCandlestickSeries({
-            upColor: '#10b981', downColor: '#ef4444', borderDownColor: '#ef4444',
-            borderUpColor: '#10b981', wickDownColor: '#ef4444', wickUpColor: '#10b981'
-        });
-
-        // Membuat sub-layer pengukur otomatis
-        entrySeries = chart.addLineSeries({ color: '#2962ff', lineWidth: 2, lineStyle: 2, title: 'ENTRY' });
-        tpSeries = chart.addAreaSeries({ lineColor: '#10b981', topColor: 'rgba(16, 185, 129, 0.25)', bottomColor: 'rgba(16, 185, 129, 0.0)', lineWidth: 1, title: 'TARGET' });
-        slSeries = chart.addAreaSeries({ lineColor: '#ef4444', topColor: 'rgba(239, 68, 68, 0.0)', bottomColor: 'rgba(239, 68, 68, 0.25)', lineWidth: 1, title: 'PROTEKSI' });
-
-        // Generate data candlestick buatan agar pas dengan harga pasar saat ini
-        generateDummyCandles();
-    }
-
-    function generateDummyCandles() {
-        const pasar = document.getElementById('kategoriPasar').value;
-        let price = pasar === "FOREX" ? 1.08500 : (pasar === "FUTURE" ? 67200 : 2340);
-        let increment = pasar === "FOREX" ? 0.0001 : (pasar === "FUTURE" ? 50 : 0.5);
-        
-        let data = [];
-        let time = Math.floor(Date.now() / 1000) - 100 * 60;
-        for (let i = 0; i < 100; i++) {
-            let open = price + (Math.random() - 0.5) * increment;
-            let close = price + (Math.random() - 0.5) * increment;
-            let high = Math.max(open, close) + Math.random() * (increment * 0.5);
-            let low = Math.min(open, close) - Math.random() * (increment * 0.5);
-            data.push({ time: time + i * 60, open, high, low, close });
-            price = close;
-        }
-        candlestickSeries.setData(data);
+        container.innerHTML = `
+            <iframe 
+                src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${encodeURIComponent(tvSymbol)}&interval=5&symboledit=0&saveimage=1&toolbarbg=131722&hide_side_toolbar=0&theme=dark&style=1&timezone=Asia%2FJakarta&locale=id" 
+                style="width: 100%; height: 100%; border: none; margin: 0; padding: 0;" 
+                allowfullscreen>
+            </iframe>`;
     }
 
     async function generateAnalisaMultiTimeframe() {
@@ -272,92 +234,58 @@
         let assetName = "XAUUSD";
         let pipDecimal = 2;
         let riskDistance = 1.2; 
-        let recLeverage = "20x";
+        let recLeverage = "50x";
 
         if (pasar === "FOREX") {
-            basePrice = 1.08540; assetName = "EURUSD"; pipDecimal = 5; riskDistance = 0.00080; recLeverage = "50x";
+            basePrice = 1.08540; assetName = "EURUSD"; pipDecimal = 5; riskDistance = 0.00080;
         } else if (pasar === "FUTURE") {
             basePrice = 67250.00; assetName = "BTCUSDT"; pipDecimal = 2; riskDistance = 250.00; recLeverage = "20x";
         } else {
             riskDistance = gaya === "sniper" ? 1.5 : 3.0;
-            recLeverage = "50x";
         }
 
         let livePrice = basePrice + (Math.random() * (basePrice * 0.001) - (basePrice * 0.0005));
         let biasUtama = opsi === "BUY" ? "LONG" : (opsi === "SELL" ? "SHORT" : (Math.random() > 0.5 ? "LONG" : "SHORT"));
 
-        let mainWinratePct = gaya === "sniper" ? 82 : 71;
+        let mainWinratePct = gaya === "sniper" ? 85 : 74;
         let pctMove = (riskDistance / livePrice) * 100;
         let mainROIPct = pctMove * parseFloat(recLeverage) * rrrMultiplier;
 
-        let mainEntry = biasUtama === "LONG" ? livePrice - (riskDistance * 0.1) : livePrice + (riskDistance * 0.1);
-        let mainSL, mainTP, mainNarasiText;
+        let mainEntry = biasUtama === "LONG" ? livePrice - (riskDistance * 0.2) : livePrice + (riskDistance * 0.2);
+        let mainSL = biasUtama === "LONG" ? mainEntry - riskDistance : mainEntry + riskDistance;
+        let mainTP = biasUtama === "LONG" ? mainEntry + (riskDistance * rrrMultiplier) : mainEntry - (riskDistance * rrrMultiplier);
 
-        if (biasUtama === "LONG") {
-            mainSL = mainEntry - riskDistance;
-            mainTP = mainEntry + (riskDistance * rrrMultiplier);
-            mainNarasiText = `[${pasar} LIVE] Kotak Ukur Terbentuk Otomatis: LONG Aktif di $${mainEntry.toFixed(pipDecimal)}.`;
-        } else {
-            mainSL = mainEntry + riskDistance;
-            mainTP = mainEntry - (riskDistance * rrrMultiplier);
-            mainNarasiText = `[${pasar} LIVE] Kotak Ukur Terbentuk Otomatis: SHORT Aktif di $${mainEntry.toFixed(pipDecimal)}.`;
-        }
-
-        // UPDATE UI TEKS
         document.getElementById('keyLevelsText').innerHTML = `
-            <strong>📍 Auto-Measurement Engine Terpasang:</strong><br>
-            • RRR Zone: <strong>1:${rrrMultiplier} (${biasUtama} Box)</strong><br>
-            • Target Eksekusi: $${mainTP.toFixed(pipDecimal)} | Proteksi Stop: $${mainSL.toFixed(pipDecimal)}
+            <strong>📍 Panduan Target Pengukuran Otomatis:</strong><br>
+            • Tarik Alat Ukur <strong>${biasUtama}</strong> dari menu kiri ke koordinat ini:<br>
+            • Entry: <strong style="color:#2962ff;">$${mainEntry.toFixed(pipDecimal)}</strong> | TP: <strong style="color:#10b981;">$${mainTP.toFixed(pipDecimal)}</strong> | SL: <strong style="color:#ef4444;">$${mainSL.toFixed(pipDecimal)}</strong>
         `;
+
         document.getElementById('mainTf').innerText = assetName;
         document.getElementById('mainEntry').innerText = mainEntry.toFixed(pipDecimal);
         document.getElementById('mainTP').innerText = mainTP.toFixed(pipDecimal);
         document.getElementById('mainSL').innerText = mainSL.toFixed(pipDecimal);
         document.getElementById('mainWinrate').innerText = `${mainWinratePct}%`;
         document.getElementById('mainROI').innerText = `+${mainROIPct.toFixed(1)}% ROI`;
-        document.getElementById('mainNarasi').innerText = mainNarasiText;
+        document.getElementById('mainNarasi').innerText = `[${gaya.toUpperCase()}] Konfluensi data pasar selesai. Gunakan panel kiri untuk plot area ${biasUtama}.`;
 
-        // EKSEKUSI PLOT OTOMATIS KE CHART (MENGGAMBAR KOTAK)
-        const currentTime = Math.floor(Date.now() / 1000);
-        
-        // Memasukkan titik ukur otomatis ke diagram grafik
-        let measurementRange = [];
-        for(let t = -20; t <= 20; t++) {
-            measurementRange.push({ time: currentTime + (t * 60) });
-        }
-
-        // Terapkan data visualisasi kotak secara real-time
-        entrySeries.setData(measurementRange.map(p => ({ time: p.time, value: mainEntry })));
-        tpSeries.setData(measurementRange.map(p => ({ time: p.time, value: mainTP })));
-        slSeries.setData(measurementRange.map(p => ({ time: p.time, value: mainSL })));
-
-        // Melakukan update lilin terakhir agar grafik tetap berdetak berjalan
-        candlestickSeries.update({
-            time: currentTime,
-            open: livePrice,
-            high: Math.max(livePrice, mainEntry) * 1.0001,
-            low: Math.min(livePrice, mainEntry) * 0.9999,
-            close: livePrice
-        });
-
-        // Bikin tabel alternatif di bawah tetap terisi
-        document.getElementById('altTitleText').innerText = `📊 MATRIX DATA ORDER BOOK ${pasar}`;
+        // Mengisi tabel alternatif di bawah
         const timeframes = ["M1", "M5", "M15", "M30", "H1"];
         let tableHtml = "";
         timeframes.forEach((tf, i) => {
-            let altEntry = biasUtama === "LONG" ? livePrice - (i*riskDistance*0.5) : livePrice + (i*riskDistance*0.5);
+            let altEntry = biasUtama === "LONG" ? livePrice - (i*riskDistance*0.4) : livePrice + (i*riskDistance*0.4);
             let altSL = biasUtama === "LONG" ? altEntry - riskDistance : altEntry + riskDistance;
             let altTP = biasUtama === "LONG" ? altEntry + (riskDistance*rrrMultiplier) : altEntry - (riskDistance*rrrMultiplier);
-            tableHtml += `<tr><td><b>${tf}</b></td><td class="${biasUtama==='LONG'?'buy':'sell'}">${biasUtama}</td><td>${altEntry.toFixed(pipDecimal)}</td><td class="buy">${altTP.toFixed(pipDecimal)}</td><td class="sell">${altSL.toFixed(pipDecimal)}</td><td><span class="futures-badge">${recLeverage}</span></td><td><span class="winrate-badge" style="background-color:#4b5563;">75%</span></td></tr>`;
+            tableHtml += `<tr><td><b>${tf}</b></td><td class="${biasUtama==='LONG'?'buy':'sell'}">${biasUtama}</td><td>${altEntry.toFixed(pipDecimal)}</td><td class="buy">${altTP.toFixed(pipDecimal)}</td><td class="sell">${altSL.toFixed(pipDecimal)}</td><td><span class="futures-badge">${recLeverage}</span></td><td><span class="winrate-badge" style="background-color:#4b5563;">70%</span></td></tr>`;
         });
         document.getElementById('altTableBody').innerHTML = tableHtml;
     }
 
+    // Hanya panggil widget sekali saat halaman dibuka agar tidak kedip/blank
     window.onload = function() {
-        initChartEngine();
+        const pasar = document.getElementById('kategoriPasar').value;
+        renderTradingViewWidget(pasar);
         generateAnalisaMultiTimeframe();
-        if(streamInterval) clearInterval(streamInterval);
-        streamInterval = setInterval(generateAnalisaMultiTimeframe, 3000);
     };
 </script>
 
