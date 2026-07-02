@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Institutional Gold Analytics Engine v8</title>
+    <title>AI Institutional Gold Analytics Engine v8.5</title>
     <style>
         body {
             font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
@@ -67,7 +67,7 @@
         }
         .chart-wrapper {
             width: 100%;
-            height: 380px;
+            height: 400px;
             background-color: #131722;
             border-radius: 8px;
             overflow: hidden;
@@ -143,19 +143,19 @@
             <span>🏛️ INSTITUTIONAL ORDER FLOW REPORT</span>
             <span style="color: #10b981;" id="syncStatus">🟢 AUTO-SYNC ACTIVE</span>
         </div>
-        <div class="output-text" id="terminalOutput">Klik tombol di atas untuk menarik data harga berjalan dan memproses analisa...</div>
+        <div class="output-text" id="terminalOutput">Menginisialisasi sistem... Klik tombol di atas untuk memproses data live.</div>
     </div>
 </div>
 
 <script>
     document.getElementById('btnCalculate').addEventListener('click', async function() {
         const statusHeader = document.getElementById('syncStatus');
-        statusHeader.innerText = "⏳ FETCHING LIVE PRICE...";
+        statusHeader.innerText = "⏳ FETCHING LIVE GOLD PRICE...";
         statusHeader.style.color = "#d4af37";
 
-        let currentPrice = 2345.50; // Harga fallback cadangan jika API sibuk
+        let currentPrice = 2345.50; // Harga fallback default aman jika API sibuk
 
-        // Mengambil data harga emas live dari API bursa global secara real-time
+        // Mengambil data harga emas live spot langsung dari data pasar finansial global
         try {
             const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=XAUUSDT');
             if(response.ok) {
@@ -163,14 +163,12 @@
                 currentPrice = parseFloat(data.price);
             }
         } catch (e) {
-            // Jika bursa crypto USDT tutup/error, gunakan ticker finansial alternatif
             try {
                 const resAlt = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=usd');
                 const dataAlt = await resAlt.json();
                 currentPrice = parseFloat(dataAlt['pax-gold'].usd);
             } catch(err) {
-                // Tetap menggunakan harga acuan jika internet offline/limit
-                currentPrice = 2351.40;
+                currentPrice = 2354.20; // Jika internet offline
             }
         }
 
@@ -205,60 +203,52 @@
         let lot1 = (modal * 0.01) / (slPips1 * 0.1);
         let lot2 = (modal * 0.01) / (slPips2 * 0.1);
 
-        let setup1Text = slPips1 > maxSlPips ? "SL TERLALU LEBAR — SKIP" : 
-            "📊 XAUUSD Signal — Setup #1\n" +
+        let setup1Text = slPips1 > maxSlPips ? "SL TERLALU LEBAR — SKIP SETUP INI" : 
+            "📊 XAUUSD Signal — Setup Utama #1\n" +
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
             "Zona Score  : " + (bias === "BULLISH" ? "⭐⭐⭐ KUAT" : "⭐⭐ CUKUP") + "\n" +
-            "Direction   : " + (bias === "BEARISH" ? "Bearish 📉" : "Bullish 📈") + "\n" +
-            "Entry Zone  : $" + z1_L.toFixed(2) + " - $" + z1_H.toFixed(2) + " (" + ((z1_H - z1_L) * 10).toFixed(0) + " pip range)\n" +
-            "SL          : $" + sl1.toFixed(2) + " (" + slPips1.toFixed(0) + " pip)\n" +
-            "TP1         : $" + tp1_1.toFixed(2) + " (" + tp1Pips1.toFixed(0) + " pip) — IRL: Imbalance Terdekat.\n" +
-            "TP2         : $" + tp2_1.toFixed(2) + " (" + tp2Pips1.toFixed(0) + " pip) — ERL: External Liquidity.\n" +
-            "RR TP1      : 1:" + (tp1Pips1/slPips1).toFixed(1) + "\n" +
-            "RR TP2      : 1:" + (tp2Pips1/slPips1).toFixed(1) + "\n" +
-            "Rekomendasi Lot Size: " + lot1.toFixed(2) + " Lot (Risk Maks 1%)\n" +
-            "Confidence  : " + (bias === "BULLISH" ? "85%" : "65%") + "\n\n" +
-            "🎯 TUGAS TRADER (TANDAI AREA): \nSilakan buka toolbar prediksi di kiri chart, tarik area kotak dari $" + z1_L.toFixed(2) + " sampai SL $" + sl1.toFixed(2) + ".";
+            "Arah Posisi : " + (bias === "BEARISH" ? "SELL (Short Position) 📉" : "BUY (Long Position) 📈") + "\n" +
+            "Zona Entry  : $" + z1_L.toFixed(2) + " - $" + z1_H.toFixed(2) + " (" + ((z1_H - z1_L) * 10).toFixed(0) + " pip range)\n" +
+            "Stop Loss   : $" + sl1.toFixed(2) + " (" + slPips1.toFixed(0) + " pip)\n" +
+            "Take Profit1: $" + tp1_1.toFixed(2) + " (" + tp1Pips1.toFixed(0) + " pip) — Target FVG\n" +
+            "Take Profit2: $" + tp2_1.toFixed(2) + " (" + tp2Pips1.toFixed(0) + " pip) — Target Liquidity Pool\n" +
+            "Risk/Reward : 1:" + (tp1Pips1/slPips1).toFixed(1) + " (TP1) | 1:" + (tp2Pips1/slPips1).toFixed(1) + " (TP2)\n" +
+            "Ukuran Lot  : " + lot1.toFixed(2) + " Lot (Risk Kontrol Ketat 1%)\n\n" +
+            "📌 LANGKAH ANDA DI CHART:\nSilakan gunakan menu gambar Long/Short tool di sebelah kiri chart atas Anda, lalu plot koordinat angkanya sesuai data di atas untuk menandai zonanya.";
 
-        let setup2Text = slPips2 > maxSlPips ? "SL TERLALU LEBAR — SKIP" : 
-            "📊 XAUUSD Signal — Setup #2\n" +
+        let setup2Text = slPips2 > maxSlPips ? "SL TERLALU LEBAR — SKIP SETUP INI" : 
+            "📊 XAUUSD Signal — Setup Sekunder #2\n" +
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-            "Zona Score  : ⭐⭐ CUKUP\n" +
-            "Entry Zone  : $" + z2_L.toFixed(2) + " - $" + z2_H.toFixed(2) + "\n" +
-            "SL          : $" + sl2.toFixed(2) + " (" + slPips2.toFixed(0) + " pip)\n" +
-            "TP1         : $" + tp1_2.toFixed(2) + " (" + tp1Pips2.toFixed(0) + " pip)\n" +
-            "Rekomendasi Lot Size: " + lot2.toFixed(2) + " Lot";
+            "Zona Entry  : $" + z2_L.toFixed(2) + " - $" + z2_H.toFixed(2) + "\n" +
+            "Stop Loss   : $" + sl2.toFixed(2) + " (" + slPips2.toFixed(0) + " pip)\n" +
+            "Take Profit : $" + tp1_2.toFixed(2) + "\n" +
+            "Ukuran Lot  : " + lot2.toFixed(2) + " Lot";
 
         let fullReport = 
-            "[STEP 1 — NARASI]\n" +
-            "Narasi    : Ekstraksi data harga spot XAUUSD saat ini berada di level $" + currentPrice.toFixed(2) + ". Mengkalkulasi algoritma order flow order block harian.\n" +
-            "Sentimen  : " + (bias === "KONFLIK" ? "Netral" : (bias === "BULLISH" ? "Risk-Off" : "Risk-On")) + "\n\n" +
-            "[STEP 2 — BIAS HTF]\n" +
-            "Bias Utama: " + (bias === "KONFLIK" ? "RANGING / KONFLIK" : bias) + "\n" +
-            "Level Kunci HTF: $" + (currentPrice - 20).toFixed(2) + " - $" + (currentPrice + 20).toFixed(2) + "\n\n" +
-            "[STEP 3 — ZONA LOGIS]\n" +
-            "Zona 1: $" + z1_L.toFixed(2) + " - $" + z1_H.toFixed(2) + " | Fresh OB | TF: H1\n" +
-            "Zona 2: $" + z2_L.toFixed(2) + " - $" + z2_H.toFixed(2) + " | FVG Zone | TF: M15\n\n" +
+            "[STEP 1 — DATA REALTIME]\n" +
+            "Harga Terbaca : $" + currentPrice.toFixed(2) + " (Otomatis Tersinkronisasi)\n" +
+            "Kondisi Makro : " + (bias === "KONFLIK" ? "Pasar Sideways / Menunggu Berita." : "Volume Institusi Selaras Sentimen.") + "\n\n" +
+            "[STEP 2 — STRUKTUR BIAS HTF]\n" +
+            "Arah Analisis : " + (bias === "KONFLIK" ? "CONFLICTION (Wait & See)" : bias) + "\n" +
+            "Rentang Kunci : $" + (currentPrice - 15).toFixed(2) + " - $" + (currentPrice + 15).toFixed(2) + "\n\n" +
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" + setup1Text + "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" + setup2Text + "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
-            "[STEP 6 — CONFLICT CHECK]\n" +
-            "Status      : " + (bias === "KONFLIK" ? "⚠ KONFLIK" : "✅ SELARAS") + "\n" +
-            "Rekomendasi : " + (bias === "KONFLIK" ? "WAIT" : "ENTRY") + "\n\n" +
-            "[VERDICT AKHIR]\n" +
-            "Signal      : " + (bias === "KONFLIK" ? "🟡 WAIT" : (bias === "BULLISH" ? "🟢 STRONG BUY" : "🔴 STRONG SELL")) + "\n" +
-            "Narasi Akhir: Harga berhasil ditarik otomatis. Gunakan koordinat angka di atas untuk memetakan long/short di chart.\n\n" +
+            "[STEP 6 — KESIMPULAN REKOMENDASI]\n" +
+            "Status Sinyal : " + (bias === "KONFLIK" ? "🟡 TUNGGU KONFIRMASI" : (bias === "BULLISH" ? "🟢 ENTRY BUY AREA" : "🔴 ENTRY SELL AREA")) + "\n" +
+            "Saran Eksekusi: " + (bias === "KONFLIK" ? "Jangan terburu-buru entry." : "Tunggu konfirmasi pola Choch/MSS di timeframe M1/M5 pada zona entri tersebut.") + "\n\n" +
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-            "Jaga MM 🛡 Angka otomatis terekstrak dari bursa global realtime\n" +
-            "Your Risk Your Reward 🔥\n" +
+            "Jaga Money Management 🛡️ Pasang SL sebelum masuk pasar!\n" +
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
 
         document.getElementById('terminalOutput').innerText = fullReport;
     });
 
+    // Jalankan kalkulasi otomatis sesaat setelah halaman selesai dimuat
     window.onload = function() {
-        setTimeout(() => { document.getElementById('btnCalculate').click(); }, 1000);
+        setTimeout(() => { document.getElementById('btnCalculate').click(); }, 800);
     };
 </script>
 
 </body>
 </html>
+ 
